@@ -1,0 +1,584 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Rampproef live</title>
+<meta name="theme-color" content="#161B1F">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Rampproef">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23161B1F'/%3E%3Cpath d='M8 36h12l5-12 8 24 6-16 4 4h13' fill='none' stroke='%23F0806F' stroke-width='5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#E6EAE7; --paper:#F8F9F7; --ink:#1D2227; --muted:#58616A; --line:#C7CEC9; --soft:#DDE3DF;
+  --blue:#1D4FAE; --red:#BF3328; --green:#2B7447; --amber:#9A6A00;
+  --run:rgba(29,79,174,.10); --rest:rgba(88,97,106,.14); --sta:rgba(191,51,40,.08);
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#161B1F; --paper:#1E252A; --ink:#E7ECE9; --muted:#9BA6AE; --line:#34414A; --soft:#27313A;
+  --blue:#86A8F2; --red:#F0806F; --green:#6FC693; --amber:#E2B24F;
+  --run:rgba(134,168,242,.14); --rest:rgba(155,166,174,.14); --sta:rgba(240,128,111,.10);}}
+:root[data-theme="dark"]{
+  --bg:#161B1F; --paper:#1E252A; --ink:#E7ECE9; --muted:#9BA6AE; --line:#34414A; --soft:#27313A;
+  --blue:#86A8F2; --red:#F0806F; --green:#6FC693; --amber:#E2B24F;
+  --run:rgba(134,168,242,.14); --rest:rgba(155,166,174,.14); --sta:rgba(240,128,111,.10);}
+*,*::before,*::after{box-sizing:inherit}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Archivo",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.4;font-variant-numeric:tabular-nums}
+.wrap{max-width:1400px;margin:0 auto;padding:14px 18px 30px}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;border-bottom:2px solid var(--ink);padding-bottom:10px}
+.bar h1{margin:0;font-stretch:68%;font-weight:800;font-size:1.9rem;line-height:1}
+.conn{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.dot{width:12px;height:12px;border-radius:50%;background:var(--muted);display:inline-block}
+.dot.on{background:var(--green)} .dot.wait{background:var(--amber)}
+.btn{font:inherit;font-weight:700;font-size:1rem;border:2px solid var(--ink);background:var(--ink);color:var(--bg);border-radius:999px;padding:9px 18px;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--ink)}
+.btn.fail{background:var(--red);border-color:var(--red);color:#fff}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+.settings{display:flex;flex-wrap:wrap;gap:14px;align-items:end;padding:12px 0}
+label{font-size:.85rem;font-weight:600;display:flex;flex-direction:column;gap:3px}
+select,input{font:inherit;font-size:16px;padding:7px 9px;border:1.5px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink);min-width:110px}
+.check{flex-direction:row;align-items:center;gap:6px}
+.check input{min-width:0;width:18px;height:18px}
+.stage{display:grid;grid-template-columns:1.25fr 1fr;gap:16px;margin-top:6px}
+@media (max-width:900px){.stage{grid-template-columns:1fr}}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+.phase-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;color:var(--muted);font-weight:600}
+.block{font-stretch:62%;font-weight:800;font-size:clamp(3rem,8vw,6.5rem);line-height:.9;margin:8px 0 4px}
+.target{font-stretch:75%;font-weight:800;font-size:clamp(2rem,5vw,3.6rem);line-height:1}
+.clock{font-stretch:70%;font-weight:800;font-size:clamp(4rem,12vw,9rem);line-height:.9;margin-top:10px}
+.next{color:var(--muted);font-size:1.05rem;margin-top:10px;min-height:1.4em}
+.progress{height:10px;background:var(--soft);border-radius:999px;overflow:hidden;margin-top:12px}
+.progress div{height:100%;width:0;background:var(--ink)}
+.hr-label{color:var(--muted);font-weight:600}
+.hr{font-stretch:65%;font-weight:800;font-size:clamp(5rem,15vw,11rem);line-height:.85;margin:6px 0}
+.hr small{font-size:.22em;font-weight:600;color:var(--muted);font-stretch:100%}
+.hrmeta{display:flex;gap:18px;flex-wrap:wrap;color:var(--muted);font-weight:600}
+.hrmeta b{color:var(--ink)}
+.controls{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0}
+.controls .btn{font-size:1.15rem;padding:12px 22px}
+canvas{width:100%;height:260px;display:block}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:.85rem;color:var(--muted);margin-top:6px}
+.legend i{display:inline-block;width:14px;height:10px;border-radius:2px;vertical-align:middle;margin-right:5px}
+h2{font-stretch:72%;font-weight:800;font-size:1.5rem;margin:0 0 8px}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%}
+th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{font-size:.82rem;color:var(--muted);font-weight:700}
+tr.cur td{background:var(--soft);font-weight:700}
+.result{border:2px solid var(--ink);border-radius:14px;padding:16px 18px;margin-top:16px;display:none}
+.result.on{display:block}
+.result p{margin:6px 0;max-width:75ch}
+.msg{color:var(--muted);font-size:.9rem}
+.warn{color:var(--red);font-weight:600}
+
+details.setwrap{border-bottom:1px solid var(--line)}
+details.setwrap summary{cursor:pointer;font-weight:700;padding:10px 0;color:var(--muted)}
+@media (max-width:700px){
+  .wrap{padding:8px 12px calc(96px + env(safe-area-inset-bottom,0px))}
+  .bar h1{font-size:1.5rem}
+  .conn .btn{padding:7px 14px;font-size:.95rem}
+  .stage{gap:10px}
+  .card{padding:12px 14px}
+  .block{font-size:clamp(2.2rem,11vw,3.2rem);margin:4px 0 2px}
+  .target{font-size:clamp(1.6rem,8vw,2.2rem)}
+  .clock{font-size:clamp(3.4rem,19vw,5rem);margin-top:6px}
+  .next{font-size:.92rem;margin-top:6px}
+  .hr{font-size:clamp(3.4rem,19vw,5rem)}
+  .hrmeta{gap:12px;font-size:.9rem}
+  .controls.main{position:fixed;left:0;right:0;bottom:0;z-index:10;margin:0;background:var(--bg);border-top:2px solid var(--ink);
+    padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));display:grid;grid-template-columns:1fr 1fr 1.3fr;gap:8px}
+  .controls.main .btn{padding:14px 8px;font-size:1.05rem}
+  .hide-phone{display:none}
+  canvas{height:200px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="bar">
+    <h1>Rampproef live</h1>
+    <div class="conn">
+      <span class="dot" id="dot"></span><span id="connText">Geen sensor</span>
+      <button class="btn" id="btnConnect">Bluetooth</button>
+      <button class="btn" id="btnAnt">ANT+</button>
+      <button class="btn ghost" id="btnDemo" title="Test de pagina zonder sensor">Demo</button>
+    </div>
+  </div>
+
+  <details class="setwrap" id="setWrap" open><summary>Instellingen</summary>
+  <div class="settings" id="settings">
+    <label>Versie<select id="ver"><option value="run">Lopen</option><option value="row">Roeien</option></select></label>
+    <label>Wall ball<select id="wb"><option>4</option><option selected>6</option><option>9</option></select></label>
+    <label>Startcyclus<input id="startC" type="number" min="1" max="12" value="1"></label>
+    <label>Drempelhartslag<input id="lthr" type="number" min="100" max="220" value="155"></label>
+    <label>ANT+ band-ID<input id="antId" type="number" min="0" max="65535" value="0" title="0 = eerste band die gevonden wordt"></label>
+    <label class="check"><input type="checkbox" id="speech" checked>Gesproken instructies</label>
+    <label class="check"><input type="checkbox" id="beeps" checked>Piepjes</label>
+    <label class="check"><input type="checkbox" id="vibrate" checked>Trillen</label>
+  </div>
+  </details>
+  <p class="msg" id="btMsg"></p>
+
+  <div class="stage">
+    <div class="card">
+      <div class="phase-top"><span id="cycleLbl">Klaar om te starten</span><span id="totalLbl">0:00</span></div>
+      <div class="block" id="blockLbl">Opwarmen</div>
+      <div class="target" id="targetLbl">Verbind je sensor en druk op Start</div>
+      <div class="clock" id="clockLbl">–:––</div>
+      <div class="progress"><div id="prog"></div></div>
+      <div class="next" id="nextLbl"></div>
+    </div>
+    <div class="card">
+      <div class="hr-label">Hartslag</div>
+      <div class="hr" id="hrLbl">––<small> bpm</small></div>
+      <div class="hrmeta">
+        <span>% drempel <b id="pctLbl">–</b></span>
+        <span>Piek test <b id="maxLbl">–</b></span>
+        <span>Blokgemiddelde <b id="avgLbl">–</b></span>
+      </div>
+      <div class="controls main">
+        <button class="btn" id="btnStart">Start</button>
+        <button class="btn ghost" id="btnPause" disabled>Pauze</button>
+        <button class="btn fail" id="btnFail" disabled>Niet gehaald</button>
+      </div>
+      <p class="msg hide-phone">"Niet gehaald" beëindigt de test op het moment dat je de reps of afstand niet binnen de tijd haalt.</p>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <canvas id="chart" aria-label="Hartslaggrafiek"></canvas>
+    <div class="legend">
+      <span><i style="background:var(--sta)"></i>BBJ en wall balls</span>
+      <span><i style="background:var(--run)"></i><span id="legRun">Lopen</span></span>
+      <span><i style="background:var(--rest)"></i>Rust</span>
+      <span><i style="border-top:2px dashed var(--red);height:0"></i>Drempelhartslag</span>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <h2>Per cyclus</h2>
+    <div class="scroll"><table id="cycTable"></table></div>
+  </div>
+
+  <div class="result" id="result">
+    <h2>Resultaat</h2>
+    <div id="resText"></div>
+    <div class="controls">
+      <button class="btn" id="btnCopy">Kopieer samenvatting</button>
+      <button class="btn ghost" id="btnCsv">Download hartslagdata (CSV)</button>
+    </div>
+    <p class="msg" id="copyMsg" role="status"></p>
+  </div>
+</div>
+
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const KEY='rampproef-live.v1';
+const BLOCKS=[{k:'bbj',n:'Burpee broad jumps',d:60},{k:'wb',n:'Wall balls',d:60},{k:'cardio',n:'Lopen',d:120},{k:'rest',n:'Rust',d:60}];
+const PREP=15;
+const runStage=n=>({bbj:6+n,wb:10+2*n,v:10+n,d:Math.round((10+n)*1000/30)});
+const rowPace=n=>140-5*n;
+const rowStage=n=>{const p=rowPace(n);return {bbj:6+n,wb:10+2*n,p,d:Math.round(120/(p/500))};};
+const fmt=s=>{if(!isFinite(s))return '–:––';s=Math.max(0,Math.ceil(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');};
+const fmtP=s=>Math.floor(s/60)+':'+String(Math.round(s%60)).padStart(2,'0');
+
+// settings persistence
+try{const s=JSON.parse(localStorage.getItem(KEY)||'{}');['ver','wb','startC','lthr','antId'].forEach(k=>{if(s[k]!=null)$(k).value=s[k];});
+  if(s.speech!=null)$('speech').checked=s.speech;if(s.vibrate!=null)$('vibrate').checked=s.vibrate;if(s.beeps!=null)$('beeps').checked=s.beeps;}catch(e){}
+function saveSettings(){try{localStorage.setItem(KEY,JSON.stringify({ver:$('ver').value,wb:$('wb').value,startC:$('startC').value,lthr:$('lthr').value,antId:$('antId').value,speech:$('speech').checked,vibrate:$('vibrate').checked,beeps:$('beeps').checked}));}catch(e){}}
+['ver','wb','startC','lthr','antId','speech','beeps','vibrate'].forEach(k=>$(k).addEventListener('change',()=>{saveSettings();refreshStatic();}));
+
+const isRun=()=>$('ver').value==='run';
+const lthr=()=>+$('lthr').value||155;
+function stageInfo(n){return isRun()?runStage(n):rowStage(n);}
+function targetText(k,n){const s=stageInfo(n);
+  if(k==='bbj')return s.bbj+' BBJ';
+  if(k==='wb')return s.wb+' × '+$('wb').value+' kg';
+  if(k==='cardio')return isRun()?s.v+' km/u  ('+s.d+' m)':fmtP(s.p)+' /500m  ('+s.d+' m)';
+  return 'Herstel';}
+function blockName(k){return k==='cardio'?(isRun()?'Lopen':'Roeien'):BLOCKS.find(b=>b.k===k).n;}
+
+// ---------- Heart rate ----------
+let samples=[]; // {t(test s or null), ts(ms), hr, rr[], c, b}
+let lastHr=null, device=null, demoTimer=null, manualDisconnect=false;
+function setConn(state,text){$('dot').className='dot'+(state==='on'?' on':state==='wait'?' wait':'');$('connText').textContent=text;}
+function onHr(hr,rr){
+  lastHr=hr;
+  const ph=T.running?T.phase:null;
+  samples.push({t:T.running?T.elapsed():null,ts:Date.now(),hr,rr:rr||[],c:ph?ph.c:null,b:ph?ph.k:null});
+  if(samples.length>20000)samples.splice(0,1000);
+  renderHr();
+}
+function parseHrm(dv){
+  const f=dv.getUint8(0);let i=1,hr;
+  if(f&1){hr=dv.getUint16(i,true);i+=2;}else{hr=dv.getUint8(i);i+=1;}
+  if(f&8)i+=2;
+  const rr=[];if(f&16){while(i+1<dv.byteLength){rr.push(Math.round(dv.getUint16(i,true)/1024*1000));i+=2;}}
+  return {hr,rr};
+}
+async function connectGatt(){
+  setConn('wait','Verbinden…');
+  const server=await device.gatt.connect();
+  const svc=await server.getPrimaryService('heart_rate');
+  const ch=await svc.getCharacteristic('heart_rate_measurement');
+  ch.addEventListener('characteristicvaluechanged',e=>{const r=parseHrm(e.target.value);onHr(r.hr,r.rr);});
+  await ch.startNotifications();
+  setConn('on',device.name||'Sensor verbonden');
+}
+$('btnConnect').addEventListener('click',async()=>{
+  $('btMsg').textContent='';
+  if(!navigator.bluetooth){$('btMsg').innerHTML='<span class="warn">Deze browser ondersteunt geen Web Bluetooth.</span> Open dit bestand in Chrome of Edge op je laptop, en zet Bluetooth aan.';return;}
+  try{
+    stopDemo();await antStop();
+    device=await navigator.bluetooth.requestDevice({filters:[{services:['heart_rate']}]});
+    device.addEventListener('gattserverdisconnected',onDisconnect);
+    manualDisconnect=false;
+    await connectGatt();
+  }catch(err){
+    setConn('off','Geen sensor');
+    if(err&&err.name==='NotFoundError')$('btMsg').textContent='Geen sensor gekozen. Draag de HRM-Pro (die zendt pas uit met huidcontact) en probeer opnieuw.';
+    else $('btMsg').innerHTML='<span class="warn">Verbinden mislukt:</span> '+(err&&err.message||err)+'. Staat de band nog gekoppeld aan een andere app op je gsm? Sluit die app en probeer opnieuw.';
+  }
+});
+async function onDisconnect(){
+  if(manualDisconnect||ant.dev)return;
+  setConn('wait','Verbinding verloren, opnieuw verbinden…');
+  for(let a=0;a<6;a++){
+    await new Promise(r=>setTimeout(r,1500));
+    try{await connectGatt();return;}catch(e){}
+  }
+  setConn('off','Verbinding verloren');
+  $('btMsg').innerHTML='<span class="warn">Sensor niet meer bereikbaar.</span> De timer loopt door; druk op "Verbind HRM-Pro" om opnieuw te verbinden.';
+}
+
+// ---------- ANT+ via USB stick (WebUSB) ----------
+const ant={dev:null,epIn:null,epOut:null,buf:[],lastCount:null,lastTime:null,reading:false,devNum:null};
+const NETKEY=[0xB9,0xA5,0x21,0xFB,0xBD,0x72,0xC3,0x45];
+function antMsg(id,data){const len=data.length,m=[0xA4,len,id,...data];let c=0;m.forEach(b=>c^=b);m.push(c);return new Uint8Array(m);}
+async function antSend(id,data){await ant.dev.transferOut(ant.epOut,antMsg(id,data));await new Promise(r=>setTimeout(r,60));}
+async function antOpenChannel(){
+  const id=Math.max(0,Math.min(65535,+$('antId').value||0));
+  await antSend(0x42,[0,0x00,0]);                 // assign channel 0, slave, network 0
+  await antSend(0x51,[0,id&255,id>>8,120,0]);     // channel ID: device nr, type 120 = hartslag
+  await antSend(0x43,[0,0x86,0x1F]);              // period 8070
+  await antSend(0x44,[0,0xFF]);                   // zoeken zonder timeout
+  await antSend(0x45,[0,57]);                     // 2457 MHz
+  await antSend(0x4B,[0]);                        // open
+}
+function antHandle(id,d){
+  if(id===0x4E||id===0x4F||id===0x50){             // broadcast (of ack/burst) data
+    const p=d.slice(1,9); if(p.length<8)return;
+    const hr=p[7], cnt=p[6], time=p[4]|(p[5]<<8), page=p[0]&0x7F;
+    if(ant.devNum==null&&!ant.idReq&&ant.dev){ant.idReq=true;antSend(0x4D,[0,0x51]).catch(()=>{});setTimeout(()=>{ant.idReq=false;},3000);}
+    if(cnt===ant.lastCount)return;                 // geen nieuwe slag: niets doen
+    const rr=[];
+    if(page===4&&((cnt-ant.lastCount+256)%256)===1||page===4&&ant.lastCount==null){
+      const prev=p[2]|(p[3]<<8);rr.push(Math.round(((time-prev+65536)%65536)/1024*1000));
+    }else if(ant.lastTime!=null&&((cnt-ant.lastCount+256)%256)===1){
+      rr.push(Math.round(((time-ant.lastTime+65536)%65536)/1024*1000));
+    }
+    ant.lastCount=cnt;ant.lastTime=time;
+    if(hr>0){setConn('on','ANT+ band'+(ant.devNum!=null?' '+ant.devNum:''));antRate(hr,rr);}
+  }else if(id===0x51){                              // channel ID antwoord
+    const n=d[1]|(d[2]<<8); if(n>0){ant.devNum=n;setConn('on','ANT+ band '+n);
+      $('btMsg').innerHTML='Verbonden met ANT+ band <b>'+n+'</b>. Vul dit nummer in bij "ANT+ band-ID" om in een volle box alleen jouw band te volgen.';}
+  }else if(id===0x40&&d[1]===1){                    // channel event
+    const code=d[2];
+    if(code===0x07){setConn('wait','ANT+ zoekt opnieuw…');antOpenChannel().catch(()=>{});} // kanaal gesloten
+    if(code===0x02){setConn('wait','ANT+ signaal zwak…');}                                  // rx fail
+  }
+}
+// ANT levert elke ~0,25 s een bericht; we geven hoogstens elke seconde een waarde door
+let antLastEmit=0;
+function antRate(hr,rr){const now=Date.now();if(now-antLastEmit<900&&!rr.length)return;antLastEmit=now;onHr(hr,rr);}
+async function antReadLoop(){
+  ant.reading=true;
+  while(ant.dev&&ant.reading){
+    let res;try{res=await ant.dev.transferIn(ant.epIn,64);}catch(e){break;}
+    if(!res||!res.data)continue;
+    for(let i=0;i<res.data.byteLength;i++)ant.buf.push(res.data.getUint8(i));
+    while(ant.buf.length>=4){
+      const s=ant.buf.indexOf(0xA4); if(s<0){ant.buf=[];break;} if(s>0)ant.buf.splice(0,s);
+      if(ant.buf.length<2)break; const len=ant.buf[1]; if(ant.buf.length<len+4)break;
+      const m=ant.buf.splice(0,len+4); let c=0; for(let i=0;i<m.length-1;i++)c^=m[i];
+      if(c!==m[m.length-1])continue;
+      antHandle(m[2],m.slice(3,3+len));
+    }
+  }
+  if(ant.dev){setConn('off','ANT+ gestopt');$('btMsg').innerHTML='<span class="warn">De ANT+-stick reageert niet meer.</span> Steek hem opnieuw in en druk op ANT+.';ant.dev=null;}
+}
+async function antStop(){
+  if(!ant.dev)return; const d=ant.dev; ant.reading=false; ant.dev=null;
+  try{await d.transferOut(ant.epOut,antMsg(0x4A,[0]));}catch(e){}
+  try{await d.close();}catch(e){}
+}
+$('btnAnt').addEventListener('click',async()=>{
+  $('btMsg').textContent='';
+  if(!navigator.usb){$('btMsg').innerHTML='<span class="warn">Deze browser ondersteunt geen WebUSB.</span> Gebruik Chrome of Edge.';return;}
+  try{
+    stopDemo();
+    if(device&&device.gatt&&device.gatt.connected){manualDisconnect=true;device.gatt.disconnect();}
+    await antStop();
+    setConn('wait','ANT+ stick openen…');
+    const d=await navigator.usb.requestDevice({filters:[{vendorId:0x0FCF}]});
+    await d.open(); if(d.configuration===null)await d.selectConfiguration(1);
+    await d.claimInterface(0);
+    const eps=d.configuration.interfaces[0].alternate.endpoints;
+    ant.dev=d; ant.epIn=eps.find(e=>e.direction==='in').endpointNumber; ant.epOut=eps.find(e=>e.direction==='out').endpointNumber;
+    ant.buf=[];ant.lastCount=null;ant.lastTime=null;ant.devNum=null;
+    antReadLoop();
+    await antSend(0x4A,[0]); await new Promise(r=>setTimeout(r,600));   // reset
+    await antSend(0x46,[0,...NETKEY]);                                   // ANT+ netwerksleutel
+    await antOpenChannel();
+    setConn('wait','ANT+ zoekt je band…');
+  }catch(err){
+    ant.dev=null; setConn('off','Geen sensor');
+    if(err&&err.name==='NotFoundError'){$('btMsg').textContent='Geen stick gekozen. Steek de ANT+-stick in en probeer opnieuw.';return;}
+    const win=/Windows/i.test(navigator.userAgent);
+    $('btMsg').innerHTML='<span class="warn">ANT+-stick openen mislukt:</span> '+(err&&err.message||err)+'. '+
+      (win?'Op Windows heeft Chrome de WinUSB-driver nodig voor de stick. Die installeer je eenmalig met het gratis programma Zadig. Sluit ook Garmin Express, Zwift en andere programma\'s die de stick gebruiken.'
+          :'Sluit programma\'s die de stick gebruiken (Garmin Express, Zwift) en trek de stick even uit en weer in.');
+  }
+});
+if(navigator.usb)navigator.usb.addEventListener('disconnect',e=>{if(ant.dev&&e.device===ant.dev){ant.dev=null;ant.reading=false;setConn('off','ANT+ stick verwijderd');}});
+
+// Demo
+function stopDemo(){if(demoTimer){clearInterval(demoTimer);demoTimer=null;}}
+$('btnDemo').addEventListener('click',async()=>{
+  if(demoTimer){stopDemo();setConn('off','Geen sensor');return;}
+  await antStop();
+  let hr=95;setConn('on','Demo (gesimuleerd)');
+  demoTimer=setInterval(()=>{
+    let target=100;
+    if(T.running&&T.phase){const c=T.phase.c;const base=118+c*5.5;
+      target=T.phase.k==='rest'?base-18:T.phase.k==='cardio'?base+6:base;}
+    hr+= (target-hr)*0.08+(Math.random()-0.5)*1.5;
+    onHr(Math.round(hr),[Math.round(60000/hr)]);
+  },1000);
+});
+
+// ---------- Timer / test ----------
+const T={running:false,paused:false,t0:0,pausedAcc:0,pauseStart:0,phase:null,ended:false,fail:null,lastKey:'',
+  elapsed(){if(!this.running&&!this.ended)return 0;const now=this.paused?this.pauseStart:performance.now();return (now-this.t0-this.pausedAcc)/1000;}};
+function phaseAt(t){
+  const sc=+$('startC').value||1;
+  if(t<PREP)return {k:'prep',c:sc,rem:PREP-t,dur:PREP,into:t};
+  const x=t-PREP, ci=Math.floor(x/300), inC=x-ci*300;
+  let acc=0;for(const b of BLOCKS){if(inC<acc+b.d)return {k:b.k,c:sc+ci,rem:acc+b.d-inC,dur:b.d,into:inC-acc,inC};acc+=b.d;}
+}
+// audio
+let actx=null;
+function beep(freq=880,len=0.15,vol=0.25){if(!$('beeps').checked)return;try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+  const o=actx.createOscillator(),g=actx.createGain();o.frequency.value=freq;o.type='square';g.gain.value=vol;o.connect(g);g.connect(actx.destination);
+  o.start();g.gain.exponentialRampToValueAtTime(0.0001,actx.currentTime+len);o.stop(actx.currentTime+len+0.02);}catch(e){}}
+let nlVoice=null;
+function pickVoice(){try{const v=speechSynthesis.getVoices();nlVoice=v.find(x=>/nl[-_]BE/i.test(x.lang))||v.find(x=>/^nl/i.test(x.lang))||null;}catch(e){}}
+if('speechSynthesis' in window){pickVoice();speechSynthesis.onvoiceschanged=pickVoice;}
+function say(t){if(!$('speech').checked||!('speechSynthesis' in window))return;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang=nlVoice?nlVoice.lang:'nl-BE';if(nlVoice)u.voice=nlVoice;u.rate=1.05;speechSynthesis.speak(u);}catch(e){}}
+function spokenTarget(k,n){const s=stageInfo(n);
+  if(k==='bbj')return s.bbj+' burpee broad jumps';
+  if(k==='wb')return s.wb+' wall balls';
+  if(k==='cardio')return isRun()?s.v+' kilometer per uur':Math.floor(s.p/60)+' '+Math.round(s.p%60)+' per 500 meter';
+  return '';}
+let wakeLock=null;
+async function keepAwake(){try{if('wakeLock' in navigator)wakeLock=await navigator.wakeLock.request('screen');}catch(e){}}
+document.addEventListener('visibilitychange',()=>{if(T.running&&document.visibilityState==='visible')keepAwake();});
+
+let lastBeepSec=null;
+function tick(){
+  if(!T.running)return;
+  const t=T.elapsed(), ph=phaseAt(t); T.phase=ph;
+  const key=ph.k+ph.c;
+  if(key!==T.lastKey){onPhaseChange(ph);T.lastKey=key;}
+  const secLeft=Math.ceil(ph.rem);
+  if(!T.paused&&secLeft<=3&&secLeft>=1&&secLeft!==lastBeepSec){beep(660,0.12);lastBeepSec=secLeft;}
+  if(secLeft>3)lastBeepSec=null;
+  renderPhase(ph,t);
+}
+function onPhaseChange(ph){
+  if(T.lastKey){beep(1100,0.45,0.3);if($('vibrate').checked&&navigator.vibrate)try{navigator.vibrate(ph.k==='rest'?[150,80,150]:400);}catch(e){}}
+  if(ph.k==='prep'){say('Test start over vijftien seconden. Eerste blok: '+spokenTarget('bbj',ph.c));return;}
+  if(ph.k==='rest'){
+    const n=ph.c+1, s=stageInfo(n);
+    say('Rust. Cyclus '+ph.c+' voltooid. Volgende: '+spokenTarget('bbj',n)+', '+spokenTarget('wb',n)+', '+(isRun()?'loopband op '+s.v+' kilometer per uur':'roeien aan '+spokenTarget('cardio',n)));
+  }else if(ph.k==='bbj'){say('Cyclus '+ph.c+'. '+spokenTarget('bbj',ph.c));}
+  else if(ph.k==='wb'){say(spokenTarget('wb',ph.c));}
+  else if(ph.k==='cardio'){say((isRun()?'Lopen, ':'Roeien, ')+spokenTarget('cardio',ph.c));}
+  renderTable();
+}
+function renderPhase(ph,t){
+  $('totalLbl').textContent='Totaal '+fmt(t);
+  if(ph.k==='prep'){$('cycleLbl').textContent='Start over';$('blockLbl').textContent='Klaar maken';$('targetLbl').textContent='Eerst: '+targetText('bbj',ph.c);}
+  else{$('cycleLbl').textContent='Cyclus '+ph.c;$('blockLbl').textContent=blockName(ph.k);$('targetLbl').textContent=targetText(ph.k,ph.c);}
+  $('clockLbl').textContent=fmt(ph.rem);
+  $('prog').style.width=(100*(1-ph.rem/ph.dur))+'%';
+  let nxt='';
+  if(ph.k==='prep')nxt='';
+  else if(ph.k==='bbj')nxt='Straks: '+targetText('wb',ph.c);
+  else if(ph.k==='wb')nxt='Straks: '+blockName('cardio').toLowerCase()+' '+targetText('cardio',ph.c);
+  else if(ph.k==='cardio')nxt='Daarna rust';
+  else nxt='Volgende cyclus '+(ph.c+1)+': '+targetText('bbj',ph.c+1)+', '+targetText('wb',ph.c+1)+', '+targetText('cardio',ph.c+1);
+  $('nextLbl').textContent=nxt;
+}
+function renderHr(){
+  if(lastHr==null)return;
+  $('hrLbl').innerHTML=lastHr+'<small> bpm</small>';
+  const p=lastHr/lthr();
+  $('hrLbl').style.color=p>=1?'var(--red)':p>=0.95?'var(--amber)':p>=0.85?'var(--blue)':'var(--green)';
+  $('pctLbl').textContent=Math.round(p*100)+'%';
+  const inTest=samples.filter(s=>s.t!=null);
+  $('maxLbl').textContent=inTest.length?Math.max(...inTest.map(s=>s.hr)):'–';
+  if(T.phase&&T.running){const cur=inTest.filter(s=>s.c===T.phase.c&&s.b===T.phase.k);
+    $('avgLbl').textContent=cur.length?Math.round(cur.reduce((a,s)=>a+s.hr,0)/cur.length):'–';}
+  drawChart();
+}
+
+$('btnStart').addEventListener('click',()=>{
+  if(T.running)return;
+  if(lastHr==null&&!confirm('Er komt nog geen hartslag binnen. Toch starten?'))return;
+  samples=samples.filter(s=>s.t==null).slice(-60);
+  Object.assign(T,{running:true,paused:false,ended:false,t0:performance.now(),pausedAcc:0,phase:null,lastKey:'',fail:null});
+  try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();actx.resume();}catch(e){}
+  keepAwake();
+  $('btnStart').disabled=true;$('btnPause').disabled=false;$('btnFail').disabled=false;
+  $('settings').querySelectorAll('select,input').forEach(e=>{if(!['speech','beeps','vibrate'].includes(e.id))e.disabled=true;});
+  if(window.innerWidth<=700)$('setWrap').open=false;
+  $('result').classList.remove('on');
+  T.iv=setInterval(tick,200);tick();
+});
+$('btnPause').addEventListener('click',()=>{
+  if(!T.running)return;
+  if(!T.paused){T.paused=true;T.pauseStart=performance.now();$('btnPause').textContent='Hervat';say('Pauze');}
+  else{T.pausedAcc+=performance.now()-T.pauseStart;T.paused=false;$('btnPause').textContent='Pauze';}
+});
+$('btnFail').addEventListener('click',()=>{
+  if(!T.running)return;
+  const t=T.elapsed(), ph=phaseAt(t);
+  if(ph.k==='prep'){if(confirm('Test afbreken?'))finish(null);return;}
+  finish(ph);
+});
+function finish(ph){
+  clearInterval(T.iv);T.running=false;T.ended=true;
+  try{if(wakeLock)wakeLock.release();}catch(e){}
+  beep(440,0.7,0.3);say('Test beëindigd. Goed gedaan.');
+  $('btnStart').disabled=false;$('btnStart').textContent='Nieuwe test';$('btnPause').disabled=true;$('btnFail').disabled=true;$('btnPause').textContent='Pauze';
+  $('settings').querySelectorAll('select,input').forEach(e=>e.disabled=false);
+  $('blockLbl').textContent='Einde';$('clockLbl').textContent='–:––';$('prog').style.width='100%';$('nextLbl').textContent='';
+  let last=null,frac=0;
+  if(ph){
+    if(ph.k==='rest'){last=ph.c;frac=0;}
+    else{last=ph.c-1;frac=Math.min(0.99,(ph.inC||0)/240);}
+    $('cycleLbl').textContent='Gestopt in cyclus '+ph.c+', '+blockName(ph.k).toLowerCase();
+    $('targetLbl').textContent='Laatste volledige cyclus: '+last;
+  }
+  T.fail={last,frac,at:ph?{c:ph.c,k:ph.k}:null};
+  renderTable();renderResult();drawChart();
+}
+
+// ---------- Per-cycle stats ----------
+function cycleStats(){
+  const by={};
+  samples.filter(s=>s.t!=null&&s.c!=null&&s.b&&s.b!=='prep').forEach(s=>{(by[s.c]=by[s.c]||[]).push(s);});
+  return Object.keys(by).map(Number).sort((a,b)=>a-b).map(c=>{
+    const arr=by[c], of=k=>arr.filter(s=>s.b===k);
+    const card=of('cardio'), rest=of('rest');
+    const endCardio=card.length?Math.round(card.slice(-5).reduce((a,s)=>a+s.hr,0)/Math.min(5,card.length)):null;
+    const peak=arr.length?Math.max(...arr.map(s=>s.hr)):null;
+    const endRest=rest.length>=10?Math.round(rest.slice(-5).reduce((a,s)=>a+s.hr,0)/Math.min(5,rest.length)):null;
+    const avg=arr.length?Math.round(arr.reduce((a,s)=>a+s.hr,0)/arr.length):null;
+    return {c,avg,peak,endCardio,endRest,drop:(endCardio!=null&&endRest!=null)?endCardio-endRest:null};
+  });
+}
+function renderTable(){
+  const st=cycleStats();const cur=T.phase?T.phase.c:null;
+  let h='<thead><tr><th>Cyclus</th><th>Doel</th><th>Gem.</th><th>Piek</th><th>Einde '+(isRun()?'loop':'roei')+'blok</th><th>Einde rust</th><th>Herstel</th></tr></thead><tbody>';
+  if(!st.length)h+='<tr><td colspan="7" style="text-align:left;color:var(--muted)">Nog geen data. De tabel vult zich tijdens de test.</td></tr>';
+  st.forEach(r=>{h+='<tr'+(r.c===cur&&T.running?' class="cur"':'')+'><td>'+r.c+'</td><td>'+targetText('cardio',r.c)+'</td><td>'+(r.avg??'–')+'</td><td>'+(r.peak??'–')+'</td><td>'+(r.endCardio??'–')+'</td><td>'+(r.endRest??'–')+'</td><td>'+(r.drop!=null?'−'+r.drop:'–')+'</td></tr>';});
+  $('cycTable').innerHTML=h+'</tbody>';
+}
+let summaryText='';
+function renderResult(){
+  const st=cycleStats(), f=T.fail;
+  const hrList=st.filter(r=>r.endCardio!=null).map(r=>r.endCardio);
+  const maxHr=Math.max(0,...samples.filter(s=>s.t!=null).map(s=>s.hr));
+  const drops=st.filter(r=>r.drop!=null).map(r=>r.c+': −'+r.drop).join(', ');
+  const pct=f&&f.last!=null?Math.round(f.frac*10)*10:null;
+  let html='';
+  if(f&&f.last!=null){html+='<p><b>Laatste volledige cyclus: '+f.last+'</b>, en ongeveer '+pct+'% van cyclus '+(f.last+1)+'. Vul dit zo in bij "Resultaat" in je profieltool.</p>';}
+  else html+='<p>Test afgebroken voor de eerste cyclus.</p>';
+  html+='<p>Hartslag einde '+(isRun()?'loop':'roei')+'blok per cyclus: <b>'+(hrList.join(', ')||'–')+'</b>. Hoogste hartslag in de test: <b>'+(maxHr||'–')+'</b>.</p>';
+  if(drops)html+='<p class="msg">Herstel in de rustminuut per cyclus: '+drops+'.</p>';
+  $('resText').innerHTML=html;$('result').classList.add('on');
+  summaryText=['Rampproef '+new Date().toLocaleString('nl-BE'),
+    'Versie: '+(isRun()?'lopen':'roeien')+', wall ball '+$('wb').value+' kg, startcyclus '+$('startC').value+', drempelhartslag '+lthr(),
+    f&&f.last!=null?'Laatste volledige cyclus: '+f.last+', deel volgende: '+pct+'% (gestopt in '+blockName(f.at.k).toLowerCase()+')':'Geen volledige cyclus',
+    'HR einde cardioblok per cyclus: '+hrList.join(', '),
+    'Per cyclus (cyclus, gem, piek, einde cardio, einde rust, herstel):',
+    ...st.map(r=>[r.c,r.avg,r.peak,r.endCardio,r.endRest,r.drop].map(v=>v??'-').join(' | ')),
+    'Max HR: '+maxHr].join('\n');
+}
+$('btnCopy').addEventListener('click',async()=>{
+  try{await navigator.clipboard.writeText(summaryText);$('copyMsg').textContent='Samenvatting gekopieerd. Plak ze in de chat voor een analyse.';}
+  catch(e){$('copyMsg').textContent='Kopiëren lukte niet; selecteer de tekst hierboven handmatig.';}
+});
+$('btnCsv').addEventListener('click',()=>{
+  const rows=['test_s,unix_ms,hr,rr_ms,cycle,block'];
+  samples.filter(s=>s.t!=null).forEach(s=>rows.push([s.t.toFixed(1),s.ts,s.hr,s.rr.join(' '),s.c??'',s.b??''].join(',')));
+  const blob=new Blob([rows.join('\n')],{type:'text/csv'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='rampproef-'+new Date().toISOString().slice(0,16).replace(/[:T]/g,'-')+'.csv';
+  document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);
+});
+
+// ---------- Chart ----------
+const cv=$('chart');
+function css(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
+function drawChart(){
+  const dpr=window.devicePixelRatio||1, W=cv.clientWidth, H=cv.clientHeight;
+  if(cv.width!==W*dpr||cv.height!==H*dpr){cv.width=W*dpr;cv.height=H*dpr;}
+  const g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,W,H);
+  const L=38,R=10,Tp=10,B=24;
+  const inTest=samples.filter(s=>s.t!=null);
+  const pre=!T.running&&!T.ended;
+  const data=pre?samples.slice(-120).map((s,i,a)=>({x:(s.ts-a[a.length-1].ts)/1000,hr:s.hr})):inTest.map(s=>({x:s.t,hr:s.hr}));
+  const xmin=pre?-120:0, xmax=pre?0:Math.max(PREP+300*3,(T.running?T.elapsed():(inTest.length?inTest[inTest.length-1].t:0))+30);
+  const hrs=data.map(d=>d.hr).concat([lthr()]);
+  const ymin=Math.floor((Math.min(...hrs,90)-5)/10)*10, ymax=Math.ceil((Math.max(...hrs,lthr()+10)+5)/10)*10;
+  const X=x=>L+(x-xmin)/(xmax-xmin)*(W-L-R), Y=y=>Tp+(1-(y-ymin)/(ymax-ymin))*(H-Tp-B);
+  // bands
+  if(!pre){let t=PREP,c=0;while(t<xmax){let acc=t;for(const b of BLOCKS){const x0=X(acc),x1=X(Math.min(acc+b.d,xmax));
+        g.fillStyle=b.k==='rest'?css('--rest'):b.k==='cardio'?css('--run'):css('--sta');if(x1>x0)g.fillRect(x0,Tp,x1-x0,H-Tp-B);acc+=b.d;}
+      g.fillStyle=css('--muted');g.font='11px Archivo, sans-serif';g.fillText(String((+$('startC').value||1)+c),X(t)+3,Tp+11);t+=300;c++;}}
+  // grid
+  g.strokeStyle=css('--line');g.fillStyle=css('--muted');g.font='11px Archivo, sans-serif';g.lineWidth=1;
+  for(let y=ymin;y<=ymax;y+=10){g.beginPath();g.moveTo(L,Y(y));g.lineTo(W-R,Y(y));g.stroke();g.fillText(y,4,Y(y)+4);}
+  const step=pre?30:300;for(let x=Math.ceil(xmin/step)*step;x<=xmax;x+=step){g.fillText(pre?x+'s':fmt(x),X(x)-10,H-6);}
+  // lthr
+  g.setLineDash([6,5]);g.strokeStyle=css('--red');g.beginPath();g.moveTo(L,Y(lthr()));g.lineTo(W-R,Y(lthr()));g.stroke();g.setLineDash([]);
+  // line
+  if(data.length>1){g.strokeStyle=css('--ink');g.lineWidth=2.2;g.beginPath();data.forEach((d,i)=>{const x=X(d.x),y=Y(d.hr);i?g.lineTo(x,y):g.moveTo(x,y);});g.stroke();}
+  if(pre){g.fillStyle=css('--muted');g.fillText('Laatste 2 minuten, voor de start',L+6,H-B-8);}
+}
+window.addEventListener('resize',drawChart);
+
+function refreshStatic(){
+  $('legRun').textContent=isRun()?'Lopen':'Roeien';
+  renderTable();drawChart();
+  if(!T.running&&!T.ended){const sc=+$('startC').value||1;$('cycleLbl').textContent='Klaar om te starten';$('nextLbl').textContent='Cyclus '+sc+': '+targetText('bbj',sc)+', '+targetText('wb',sc)+', '+targetText('cardio',sc);}
+}
+refreshStatic();
+try{if(window.innerWidth<=700&&localStorage.getItem(KEY))$('setWrap').open=false;}catch(e){}
+})();
+</script>
+</body>
+</html>
