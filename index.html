@@ -109,7 +109,6 @@ details.setwrap summary{cursor:pointer;font-weight:700;padding:10px 0;color:var(
     <div class="conn">
       <span class="dot" id="dot"></span><span id="connText">Geen sensor</span>
       <button class="btn" id="btnConnect">Bluetooth</button>
-      <button class="btn" id="btnAnt">ANT+</button>
       <button class="btn ghost" id="btnDemo" title="Test de pagina zonder sensor">Demo</button>
     </div>
   </div>
@@ -120,7 +119,6 @@ details.setwrap summary{cursor:pointer;font-weight:700;padding:10px 0;color:var(
     <label>Wall ball<select id="wb"><option>4</option><option selected>6</option><option>9</option></select></label>
     <label>Startcyclus<input id="startC" type="number" min="1" max="12" value="1"></label>
     <label>Drempelhartslag<input id="lthr" type="number" min="100" max="220" value="155"></label>
-    <label>ANT+ band-ID<input id="antId" type="number" min="0" max="65535" value="0" title="0 = eerste band die gevonden wordt"></label>
     <label class="check"><input type="checkbox" id="speech" checked>Gesproken instructies</label>
     <label class="check"><input type="checkbox" id="beeps" checked>Piepjes</label>
     <label class="check"><input type="checkbox" id="vibrate" checked>Trillen</label>
@@ -193,10 +191,10 @@ const fmt=s=>{if(!isFinite(s))return '–:––';s=Math.max(0,Math.ceil(s));ret
 const fmtP=s=>Math.floor(s/60)+':'+String(Math.round(s%60)).padStart(2,'0');
 
 // settings persistence
-try{const s=JSON.parse(localStorage.getItem(KEY)||'{}');['ver','wb','startC','lthr','antId'].forEach(k=>{if(s[k]!=null)$(k).value=s[k];});
+try{const s=JSON.parse(localStorage.getItem(KEY)||'{}');['ver','wb','startC','lthr'].forEach(k=>{if(s[k]!=null)$(k).value=s[k];});
   if(s.speech!=null)$('speech').checked=s.speech;if(s.vibrate!=null)$('vibrate').checked=s.vibrate;if(s.beeps!=null)$('beeps').checked=s.beeps;}catch(e){}
-function saveSettings(){try{localStorage.setItem(KEY,JSON.stringify({ver:$('ver').value,wb:$('wb').value,startC:$('startC').value,lthr:$('lthr').value,antId:$('antId').value,speech:$('speech').checked,vibrate:$('vibrate').checked,beeps:$('beeps').checked}));}catch(e){}}
-['ver','wb','startC','lthr','antId','speech','beeps','vibrate'].forEach(k=>$(k).addEventListener('change',()=>{saveSettings();refreshStatic();}));
+function saveSettings(){try{localStorage.setItem(KEY,JSON.stringify({ver:$('ver').value,wb:$('wb').value,startC:$('startC').value,lthr:$('lthr').value,speech:$('speech').checked,vibrate:$('vibrate').checked,beeps:$('beeps').checked}));}catch(e){}}
+['ver','wb','startC','lthr','speech','beeps','vibrate'].forEach(k=>$(k).addEventListener('change',()=>{saveSettings();refreshStatic();}));
 
 const isRun=()=>$('ver').value==='run';
 const lthr=()=>+$('lthr').value||155;
@@ -239,7 +237,7 @@ $('btnConnect').addEventListener('click',async()=>{
   $('btMsg').textContent='';
   if(!navigator.bluetooth){$('btMsg').innerHTML='<span class="warn">Deze browser ondersteunt geen Web Bluetooth.</span> Open dit bestand in Chrome of Edge op je laptop, en zet Bluetooth aan.';return;}
   try{
-    stopDemo();await antStop();
+    stopDemo();
     device=await navigator.bluetooth.requestDevice({filters:[{services:['heart_rate']}]});
     device.addEventListener('gattserverdisconnected',onDisconnect);
     manualDisconnect=false;
@@ -251,7 +249,7 @@ $('btnConnect').addEventListener('click',async()=>{
   }
 });
 async function onDisconnect(){
-  if(manualDisconnect||ant.dev)return;
+  if(manualDisconnect)return;
   setConn('wait','Verbinding verloren, opnieuw verbinden…');
   for(let a=0;a<6;a++){
     await new Promise(r=>setTimeout(r,1500));
@@ -261,102 +259,10 @@ async function onDisconnect(){
   $('btMsg').innerHTML='<span class="warn">Sensor niet meer bereikbaar.</span> De timer loopt door; druk op "Verbind HRM-Pro" om opnieuw te verbinden.';
 }
 
-// ---------- ANT+ via USB stick (WebUSB) ----------
-const ant={dev:null,epIn:null,epOut:null,buf:[],lastCount:null,lastTime:null,reading:false,devNum:null};
-const NETKEY=[0xB9,0xA5,0x21,0xFB,0xBD,0x72,0xC3,0x45];
-function antMsg(id,data){const len=data.length,m=[0xA4,len,id,...data];let c=0;m.forEach(b=>c^=b);m.push(c);return new Uint8Array(m);}
-async function antSend(id,data){await ant.dev.transferOut(ant.epOut,antMsg(id,data));await new Promise(r=>setTimeout(r,60));}
-async function antOpenChannel(){
-  const id=Math.max(0,Math.min(65535,+$('antId').value||0));
-  await antSend(0x42,[0,0x00,0]);                 // assign channel 0, slave, network 0
-  await antSend(0x51,[0,id&255,id>>8,120,0]);     // channel ID: device nr, type 120 = hartslag
-  await antSend(0x43,[0,0x86,0x1F]);              // period 8070
-  await antSend(0x44,[0,0xFF]);                   // zoeken zonder timeout
-  await antSend(0x45,[0,57]);                     // 2457 MHz
-  await antSend(0x4B,[0]);                        // open
-}
-function antHandle(id,d){
-  if(id===0x4E||id===0x4F||id===0x50){             // broadcast (of ack/burst) data
-    const p=d.slice(1,9); if(p.length<8)return;
-    const hr=p[7], cnt=p[6], time=p[4]|(p[5]<<8), page=p[0]&0x7F;
-    if(ant.devNum==null&&!ant.idReq&&ant.dev){ant.idReq=true;antSend(0x4D,[0,0x51]).catch(()=>{});setTimeout(()=>{ant.idReq=false;},3000);}
-    if(cnt===ant.lastCount)return;                 // geen nieuwe slag: niets doen
-    const rr=[];
-    if(page===4&&((cnt-ant.lastCount+256)%256)===1||page===4&&ant.lastCount==null){
-      const prev=p[2]|(p[3]<<8);rr.push(Math.round(((time-prev+65536)%65536)/1024*1000));
-    }else if(ant.lastTime!=null&&((cnt-ant.lastCount+256)%256)===1){
-      rr.push(Math.round(((time-ant.lastTime+65536)%65536)/1024*1000));
-    }
-    ant.lastCount=cnt;ant.lastTime=time;
-    if(hr>0){setConn('on','ANT+ band'+(ant.devNum!=null?' '+ant.devNum:''));antRate(hr,rr);}
-  }else if(id===0x51){                              // channel ID antwoord
-    const n=d[1]|(d[2]<<8); if(n>0){ant.devNum=n;setConn('on','ANT+ band '+n);
-      $('btMsg').innerHTML='Verbonden met ANT+ band <b>'+n+'</b>. Vul dit nummer in bij "ANT+ band-ID" om in een volle box alleen jouw band te volgen.';}
-  }else if(id===0x40&&d[1]===1){                    // channel event
-    const code=d[2];
-    if(code===0x07){setConn('wait','ANT+ zoekt opnieuw…');antOpenChannel().catch(()=>{});} // kanaal gesloten
-    if(code===0x02){setConn('wait','ANT+ signaal zwak…');}                                  // rx fail
-  }
-}
-// ANT levert elke ~0,25 s een bericht; we geven hoogstens elke seconde een waarde door
-let antLastEmit=0;
-function antRate(hr,rr){const now=Date.now();if(now-antLastEmit<900&&!rr.length)return;antLastEmit=now;onHr(hr,rr);}
-async function antReadLoop(){
-  ant.reading=true;
-  while(ant.dev&&ant.reading){
-    let res;try{res=await ant.dev.transferIn(ant.epIn,64);}catch(e){break;}
-    if(!res||!res.data)continue;
-    for(let i=0;i<res.data.byteLength;i++)ant.buf.push(res.data.getUint8(i));
-    while(ant.buf.length>=4){
-      const s=ant.buf.indexOf(0xA4); if(s<0){ant.buf=[];break;} if(s>0)ant.buf.splice(0,s);
-      if(ant.buf.length<2)break; const len=ant.buf[1]; if(ant.buf.length<len+4)break;
-      const m=ant.buf.splice(0,len+4); let c=0; for(let i=0;i<m.length-1;i++)c^=m[i];
-      if(c!==m[m.length-1])continue;
-      antHandle(m[2],m.slice(3,3+len));
-    }
-  }
-  if(ant.dev){setConn('off','ANT+ gestopt');$('btMsg').innerHTML='<span class="warn">De ANT+-stick reageert niet meer.</span> Steek hem opnieuw in en druk op ANT+.';ant.dev=null;}
-}
-async function antStop(){
-  if(!ant.dev)return; const d=ant.dev; ant.reading=false; ant.dev=null;
-  try{await d.transferOut(ant.epOut,antMsg(0x4A,[0]));}catch(e){}
-  try{await d.close();}catch(e){}
-}
-$('btnAnt').addEventListener('click',async()=>{
-  $('btMsg').textContent='';
-  if(!navigator.usb){$('btMsg').innerHTML='<span class="warn">Deze browser ondersteunt geen WebUSB.</span> Gebruik Chrome of Edge.';return;}
-  try{
-    stopDemo();
-    if(device&&device.gatt&&device.gatt.connected){manualDisconnect=true;device.gatt.disconnect();}
-    await antStop();
-    setConn('wait','ANT+ stick openen…');
-    const d=await navigator.usb.requestDevice({filters:[{vendorId:0x0FCF}]});
-    await d.open(); if(d.configuration===null)await d.selectConfiguration(1);
-    await d.claimInterface(0);
-    const eps=d.configuration.interfaces[0].alternate.endpoints;
-    ant.dev=d; ant.epIn=eps.find(e=>e.direction==='in').endpointNumber; ant.epOut=eps.find(e=>e.direction==='out').endpointNumber;
-    ant.buf=[];ant.lastCount=null;ant.lastTime=null;ant.devNum=null;
-    antReadLoop();
-    await antSend(0x4A,[0]); await new Promise(r=>setTimeout(r,600));   // reset
-    await antSend(0x46,[0,...NETKEY]);                                   // ANT+ netwerksleutel
-    await antOpenChannel();
-    setConn('wait','ANT+ zoekt je band…');
-  }catch(err){
-    ant.dev=null; setConn('off','Geen sensor');
-    if(err&&err.name==='NotFoundError'){$('btMsg').textContent='Geen stick gekozen. Steek de ANT+-stick in en probeer opnieuw.';return;}
-    const win=/Windows/i.test(navigator.userAgent);
-    $('btMsg').innerHTML='<span class="warn">ANT+-stick openen mislukt:</span> '+(err&&err.message||err)+'. '+
-      (win?'Op Windows heeft Chrome de WinUSB-driver nodig voor de stick. Die installeer je eenmalig met het gratis programma Zadig. Sluit ook Garmin Express, Zwift en andere programma\'s die de stick gebruiken.'
-          :'Sluit programma\'s die de stick gebruiken (Garmin Express, Zwift) en trek de stick even uit en weer in.');
-  }
-});
-if(navigator.usb)navigator.usb.addEventListener('disconnect',e=>{if(ant.dev&&e.device===ant.dev){ant.dev=null;ant.reading=false;setConn('off','ANT+ stick verwijderd');}});
-
 // Demo
 function stopDemo(){if(demoTimer){clearInterval(demoTimer);demoTimer=null;}}
 $('btnDemo').addEventListener('click',async()=>{
   if(demoTimer){stopDemo();setConn('off','Geen sensor');return;}
-  await antStop();
   let hr=95;setConn('on','Demo (gesimuleerd)');
   demoTimer=setInterval(()=>{
     let target=100;
